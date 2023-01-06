@@ -1,10 +1,21 @@
 %lang starknet
 
-from starkware.starknet.common.syscalls import get_caller_address, get_block_timestamp, get_contract_address
+from starkware.starknet.common.syscalls import (
+    get_caller_address,
+    get_block_timestamp,
+    get_contract_address,
+)
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.math import assert_not_zero, assert_le
 from starkware.cairo.common.bool import TRUE, FALSE
-from starkware.cairo.common.uint256 import Uint256, uint256_check, uint256_eq, uint256_not, uint256_add, uint256_lt
+from starkware.cairo.common.uint256 import (
+    Uint256,
+    uint256_check,
+    uint256_eq,
+    uint256_not,
+    uint256_add,
+    uint256_lt,
+)
 
 from openzeppelin.security.safemath.library import SafeUint256
 from openzeppelin.utils.constants.library import UINT8_MAX
@@ -72,7 +83,6 @@ func outflow_info_by_addr(sender: felt, index: felt) -> (res: outflow) {
 }
 
 namespace SuperERC20 {
-
     //
     // Initializer
     //
@@ -119,7 +129,7 @@ namespace SuperERC20 {
         account: felt
     ) -> (balance: Uint256) {
         let realtime_balance: Uint256 = realtime_balance_of(account);
-        let _balance:Uint256 = ERC20_balances.read(account);
+        let _balance: Uint256 = ERC20_balances.read(account);
         let total_balance: Uint256 = SafeUint256.add(_balance, realtime_balance);
         return (total_balance,);
     }
@@ -128,26 +138,34 @@ namespace SuperERC20 {
         account: felt
     ) -> (balance: Uint256) {
         let (stream_len) = inflow_len_by_addr.read(account);
-        let realtime_balance: Uint256 = _realtime_balance_of(account, stream_len, Uint256(0,0));
+        let realtime_balance: Uint256 = _realtime_balance_of(account, stream_len, Uint256(0, 0));
         return (realtime_balance,);
     }
 
-    func get_inflow_length{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (res: felt){
+    func get_inflow_length{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        account: felt
+    ) -> (res: felt) {
         let (len) = inflow_len_by_addr.read(account);
         return (res=len);
     }
 
-    func get_outflow_length{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt) -> (res: felt){
+    func get_outflow_length{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        account: felt
+    ) -> (res: felt) {
         let (len) = outflow_len_by_addr.read(account);
         return (res=len);
     }
 
-    func get_inflow_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt, id: felt) -> (res: inflow){
+    func get_inflow_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        account: felt, id: felt
+    ) -> (res: inflow) {
         let (_inflow) = inflow_info_by_addr.read(account, id);
         return (res=_inflow);
     }
 
-    func get_outflow_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(account: felt, id: felt) -> (res: outflow){
+    func get_outflow_info{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+        account: felt, id: felt
+    ) -> (res: outflow) {
         let (_outflow) = outflow_info_by_addr.read(account, id);
         return (res=_outflow);
     }
@@ -383,7 +401,7 @@ namespace SuperERC20 {
     func _realtime_balance_of{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
         account: felt, stream_len: felt, accumulated_balance: Uint256
     ) -> (balance: Uint256) {
-        if (stream_len == 0){
+        if (stream_len == 0) {
             return (balance=accumulated_balance);
         }
         let (info) = inflow_info_by_addr.read(account, stream_len - 1);
@@ -397,10 +415,10 @@ namespace SuperERC20 {
         return (balance=res);
     }
 
-    func _realtime_balance_of_and_update_state{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        account: felt, stream_len: felt, accumulated_balance: Uint256
-    ) -> (balance: Uint256) {
-        if (stream_len == 0){
+    func _realtime_balance_of_and_update_state{
+        syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
+    }(account: felt, stream_len: felt, accumulated_balance: Uint256) -> (balance: Uint256) {
+        if (stream_len == 0) {
             return (balance=accumulated_balance);
         }
         let (info) = inflow_info_by_addr.read(account, stream_len - 1);
@@ -414,14 +432,14 @@ namespace SuperERC20 {
         return (balance=res);
     }
 
-    func _calculate_unspent_streamed_in_amount{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        info: inflow
-    ) -> (res: inflow, current_amount: Uint256) {
+    func _calculate_unspent_streamed_in_amount{
+        syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
+    }(info: inflow) -> (res: inflow, current_amount: Uint256) {
         alloc_locals;
-        let amount_unspent_is_zero: felt = uint256_eq(Uint256(0,0), info.unspent);
-        if (amount_unspent_is_zero == 1){
-            return (res=info, current_amount=Uint256(0,0));
-        }else{
+        let amount_unspent_is_zero: felt = uint256_eq(Uint256(0, 0), info.unspent);
+        if (amount_unspent_is_zero == 1) {
+            return (res=info, current_amount=Uint256(0, 0));
+        } else {
             local last_updated_timestamp;
 
             last_updated_timestamp = info.last_updated_timestamp;
@@ -429,7 +447,9 @@ namespace SuperERC20 {
             let (current_timestamp) = get_block_timestamp();
             let time_diff = current_timestamp - last_updated_timestamp;
             let time_diff_as_uint256 = Uint256(time_diff, 0);
-            let stream_amount: Uint256 = SafeUint256.mul(time_diff_as_uint256, info.amount_per_second);
+            let stream_amount: Uint256 = SafeUint256.mul(
+                time_diff_as_uint256, info.amount_per_second
+            );
 
             let unspent_balance = info.unspent;
 
@@ -463,20 +483,21 @@ namespace SuperERC20 {
         }
     }
 
-    func _calculate_unspent_streamed_in_amount_and_update_state{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
-        info: inflow
-    ) -> (res: Uint256) {
+    func _calculate_unspent_streamed_in_amount_and_update_state{
+        syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
+    }(info: inflow) -> (res: Uint256) {
         let (_info, current_amount) = _calculate_unspent_streamed_in_amount(info);
         inflow_info_by_addr.write(_info.to, _info.id, _info);
         return (current_amount,);
     }
 
-
-    func _update_balance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(){
+    func _update_balance{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() {
         alloc_locals;
         let (caller) = get_caller_address();
         let stream_len: felt = inflow_len_by_addr.read(caller);
-        let realtime_balance: Uint256 = _realtime_balance_of_and_update_state(caller, stream_len, Uint256(0, 0));
+        let realtime_balance: Uint256 = _realtime_balance_of_and_update_state(
+            caller, stream_len, Uint256(0, 0)
+        );
         ERC20_realtime_balances.write(caller, realtime_balance);
         let static_balance: Uint256 = ERC20_balances.read(caller);
         let total_balance: Uint256 = SafeUint256.add(static_balance, realtime_balance);
